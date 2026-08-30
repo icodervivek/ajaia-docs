@@ -1,7 +1,7 @@
 import { useEditor, EditorContent, type JSONContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 interface Props {
   content: JSONContent;
@@ -10,6 +10,13 @@ interface Props {
 }
 
 export default function Editor({ content, editable, onChange }: Props) {
+  // Tiptap fires onUpdate once right after the editor mounts (ProseMirror
+  // normalizes the initial content on its first transaction), even though
+  // nothing was actually edited. Without this guard, opening any document
+  // triggers an unnecessary save-on-load -- harmless on its own, but it
+  // needlessly races the initial GET request.
+  const skippedInitialUpdate = useRef(false);
+
   const editor = useEditor({
     extensions: [
       // Tiptap v3's StarterKit already bundles Underline (and several other
@@ -19,7 +26,13 @@ export default function Editor({ content, editable, onChange }: Props) {
     ],
     content,
     editable,
-    onUpdate: ({ editor }) => onChange(editor.getJSON()),
+    onUpdate: ({ editor }) => {
+      if (!skippedInitialUpdate.current) {
+        skippedInitialUpdate.current = true;
+        return;
+      }
+      onChange(editor.getJSON());
+    },
   });
 
   // Keep the editor's editable state in sync (e.g. read-only fallback).
