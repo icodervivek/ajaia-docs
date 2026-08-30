@@ -11,6 +11,18 @@ export function createApp() {
   app.use(cors());
   app.use(express.json({ limit: "1mb" }));
 
+  // This is a dynamic API -- nothing here should ever be cached by Vercel's
+  // edge/CDN layer. Without this, a stale cached OPTIONS preflight response
+  // (e.g. one captured without a proper Origin header during testing) can
+  // get served back to real browsers indefinitely, missing CORS headers and
+  // silently breaking every non-GET request with an opaque "Failed to
+  // fetch" -- no error surfaces server-side since the request never reaches
+  // this app at all.
+  app.use((_req, res, next) => {
+    res.setHeader("Cache-Control", "no-store");
+    next();
+  });
+
   app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
   app.use("/api/auth", authRoutes);
