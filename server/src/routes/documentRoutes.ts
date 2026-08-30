@@ -5,6 +5,7 @@ import { prisma } from "../db";
 import { AuthedRequest, requireAuth } from "../auth";
 import { BadRequest, Forbidden, NotFound } from "../lib/errors";
 import { importFileToTiptap } from "../lib/importDoc";
+import { shouldSnapshotVersion } from "../lib/versioning";
 
 const router = Router();
 router.use(requireAuth);
@@ -154,12 +155,86 @@ router.patch("/:id", async (req: AuthedRequest, res, next) => {
       throw BadRequest("Provide at least one of title or content");
     }
 
+    // Snapshot the document's *current* state before overwriting it with a
+    // content change, throttled so the autosave debounce (~700ms) doesn't
+    // flood the history -- see lib/versioning.ts for the policy.
+    if (parsed.data.content !== undefined) {
+      const lastVersion = await prisma.documentVersion.findFirst({
+        where: { documentId: doc.id },
+        orderBy: { createdAt: "desc" },
+        select: { createdAt: true },
+      });
+      if (shouldSnapshotVersion(lastVersion?.createdAt ?? null, new Date())) {
+        await prisma.documentVersion.create({
+          data: {
+            documentId: doc.id,
+            title: doc.title,
+            content: doc.content as any,
+            createdById: req.user!.id,
+          },
+        });
+      }
+    }
+
     const updated = await prisma.document.update({
       where: { id: doc.id },
       data: {
         ...(parsed.data.title !== undefined ? { title: parsed.data.title } : {}),
         ...(parsed.data.content !== undefined ? { content: parsed.data.content as any } : {}),
       },
+    });
+    res.json({ document: updated });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/documents/:id/versions  -> version history, most recent first
+router.get("/:id/versions", async (req: AuthedRequest, res, next) => {
+  try {
+    const { doc } = await loadAccessible(req.params.id, req.user!.id);
+    const rows = await prisma.documentVersion.findMany({
+      where: { documentId: doc.id },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    });
+    const createdByIds = [...new Set(rows.map((r) => r.createdById))];
+    const users = await prisma.user.findMany({
+      where: { id: { in: createdByIds } },
+      select: { id: true, name: true },
+    });
+    const nameById = new Map(users.map((u) => [u.id, u.name]));
+
+    res.json({
+      versions: rows.map((r) => ({
+        id: r.id,
+        title: r.title,
+        createdAt: r.createdAt,
+        createdBy: nameById.get(r.createdById) ?? "Unknown",
+      })),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/documents/:id/versions/:versionId/restore
+// -> owner or shared collaborator; replaces current content with a past
+//    version's content, after checkpointing the current state first so the
+//    moment right before a restore is never silently lost.
+router.post("/:id/versions/:versionId/restore", async (req: AuthedRequest, res, next) => {
+  try {
+    const { doc } = await loadAccessible(req.params.id, req.user!.id);
+    const version = await prisma.documentVersion.findUnique({ where: { id: req.params.versionId } });
+    if (!version || version.documentId !== doc.id) throw NotFound("Version not found");
+
+    await prisma.documentVersion.create({
+      data: { documentId: doc.id, title: doc.title, content: doc.content as any, createdById: req.user!.id },
+    });
+
+    const updated = await prisma.document.update({
+      where: { id: doc.id },
+      data: { title: version.title, content: version.content as any },
     });
     res.json({ document: updated });
   } catch (err) {

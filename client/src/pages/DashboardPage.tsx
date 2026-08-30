@@ -15,6 +15,7 @@ export default function DashboardPage() {
   const [creating, setCreating] = useState(false);
   const [importing, setImporting] = useState(false);
   const [shareTarget, setShareTarget] = useState<{ id: string; title: string } | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
@@ -76,7 +77,7 @@ export default function DashboardPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Delete this document? This cannot be undone.")) return;
+    setConfirmDeleteId(null);
     try {
       await apiFetch(`/api/documents/${id}`, { method: "DELETE" });
       setOwned((docs) => docs.filter((d) => d.id !== id));
@@ -119,12 +120,26 @@ export default function DashboardPage() {
                     </Link>
                     <span className="muted small">Updated {new Date(d.updatedAt).toLocaleString()}</span>
                     <div className="doc-row-actions">
-                      <button className="btn-ghost small" onClick={() => setShareTarget({ id: d.id, title: d.title })}>
-                        Share
-                      </button>
-                      <button className="btn-ghost small danger" onClick={() => handleDelete(d.id)}>
-                        Delete
-                      </button>
+                      {confirmDeleteId === d.id ? (
+                        <span className="version-confirm">
+                          <span className="muted small">Delete permanently?</span>
+                          <button className="small danger-solid" onClick={() => handleDelete(d.id)}>
+                            Yes, delete
+                          </button>
+                          <button className="btn-ghost small" onClick={() => setConfirmDeleteId(null)}>
+                            Cancel
+                          </button>
+                        </span>
+                      ) : (
+                        <>
+                          <button className="btn-ghost small" onClick={() => setShareTarget({ id: d.id, title: d.title })}>
+                            Share
+                          </button>
+                          <button className="btn-ghost small danger" onClick={() => setConfirmDeleteId(d.id)}>
+                            Delete
+                          </button>
+                        </>
+                      )}
                     </div>
                   </li>
                 ))}

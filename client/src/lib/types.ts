@@ -31,3 +31,10 @@ export interface ShareEntry {
   name: string;
   email: string;
 }
+
+export interface VersionEntry {
+  id: string;
+  title: string;
+  createdAt: string;
+  createdBy: string;
+}

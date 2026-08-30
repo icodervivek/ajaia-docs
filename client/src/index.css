@@ -41,6 +41,8 @@ button:disabled { opacity: 0.6; cursor: default; }
 .btn-ghost:hover:not(:disabled) { background: #f0f0f2; }
 .btn-ghost.small, button.small { padding: 0.3rem 0.6rem; font-size: 0.8rem; }
 .btn-ghost.danger { color: var(--danger); border-color: #f1c9c6; }
+.danger-solid { background: var(--danger); border-color: var(--danger); }
+.danger-solid:hover:not(:disabled) { background: #b8362d; border-color: #b8362d; }
 
 input, select {
   font-family: inherit;
@@ -367,6 +369,11 @@ input, select {
 .share-list { list-style: none; margin: 0.5rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
 .share-list li { display: flex; align-items: center; justify-content: space-between; font-size: 0.875rem; padding: 0.35rem 0; border-bottom: 1px solid var(--border); }
 .modal-actions { margin-top: 1.25rem; text-align: right; }
+
+.version-list { list-style: none; margin: 0.75rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; max-height: 50vh; overflow-y: auto; }
+.version-list-item { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 0.5rem 0.75rem; padding: 0.5rem 0; border-bottom: 1px solid var(--border); }
+.version-title { font-weight: 600; font-size: 0.875rem; }
+.version-confirm { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; width: 100%; justify-content: flex-end; }
 
 @media (prefers-color-scheme: dark) {
   :root {
