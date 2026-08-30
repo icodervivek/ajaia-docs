@@ -49,6 +49,9 @@ in the top-right header to jump between users without logging out.
 - **Deployment:** two Vercel projects (client, server) from this one GitHub
   repo, each with its own Root Directory; the backend runs as a Vercel
   serverless function wrapping the same Express app used for local dev.
+  Deploys are pushed manually via `vercel --prod` from each project
+  directory rather than relying on Vercel's git-push auto-deploy — see
+  "Known limitations" below.
 
 ## Local setup
 
@@ -100,6 +103,16 @@ the auth/routing guards (401 on missing/invalid tokens, 404 handling). See
   role-based permissions (see "What I'd build next" below).
 - **Auth is mocked.** This is intentional scope discipline for a 4–6 hour
   timebox, not an oversight — see the AI workflow and architecture notes.
+- **Vercel's git-push auto-deploy doesn't work for this repo.** Every
+  push-triggered build fails in Vercel's own build pipeline (a reproducible
+  `Cannot read properties of undefined (reading 'fsPath')` on the server
+  project, a stale-cache `vite: command not found` on the client project) —
+  confirmed across many different `vercel.json` configurations, all of
+  which deploy successfully when pushed directly via `vercel --prod` from
+  the CLI. This points to a bug in the older internal builder Vercel's git
+  integration uses for this project, not something fixable from repo
+  config. Deploys are done manually: `cd server && vercel --prod` /
+  `cd client && vercel --prod`.
 
 ## What's working / incomplete / next
 
