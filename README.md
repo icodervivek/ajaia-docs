@@ -132,3 +132,4 @@ server/   Express + Prisma backend (also the Vercel serverless entry, api/index.
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — what was prioritized and why
 - [AI_WORKFLOW.md](./AI_WORKFLOW.md) — how AI tools were used on this project
 - [SUBMISSION.md](./SUBMISSION.md) — checklist of everything included
+
