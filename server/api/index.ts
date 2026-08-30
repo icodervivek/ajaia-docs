@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { createApp } from "../src/app";
+import { createApp } from "../src/expressApp";
 
 // Vercel serverless entry point. Vercel routes every request here (see
 // ../vercel.json) while preserving the original req.url, so Express's own

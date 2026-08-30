@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import request from "supertest";
-import { createApp } from "../app";
+import { createApp } from "../expressApp";
 
 // These tests only exercise routing/middleware behavior that doesn't touch
 // the database (health check, auth guard, 404s), so they run without a

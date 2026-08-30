@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { createApp } from "./app";
+import { createApp } from "./expressApp";
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
 
