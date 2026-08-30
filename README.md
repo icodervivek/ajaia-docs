@@ -120,18 +120,28 @@ the auth/routing guards (401 on missing/invalid tokens, 404 handling). See
 autosave, persistence across reloads, `.txt`/`.md` import, sharing (grant +
 revoke), owned-vs-shared distinction, access control (a non-owner can't
 delete or manage sharing; a user with no access gets a 403), demo account
-switching, deployed and reachable at the live URL above.
+switching, **version history** (stretch goal — see below), deployed and
+reachable at the live URL above.
+
+**Stretch: version history.** A checkpoint of a document's prior state is
+saved automatically whenever content is edited, throttled to at most one
+snapshot every 3 minutes per document (so the ~700ms autosave debounce
+doesn't flood the history). Open **History** on any document to see past
+checkpoints with a relative timestamp and who made them, and restore one —
+the current content is checkpointed first, so restoring never silently loses
+work. Access follows the same rule as editing: owner or anyone the doc is
+shared with can view and restore.
 
 **Incomplete / not attempted:** real-time multi-cursor collaboration, comment
-threads, version history, PDF/Markdown export, granular (viewer vs. editor)
-permissions, real authentication.
+threads, PDF/Markdown export, granular (viewer vs. editor) permissions, real
+authentication.
 
-**With another 2–4 hours I'd build:** (1) document version history —
-the data model already timestamps every update, so snapshotting on save is
-the natural next step; (2) read-only sharing as a second permission level;
-(3) debounced-save conflict handling for two people editing the same doc at
+**With another 2–4 hours I'd build:** (1) read-only sharing as a second
+permission level, alongside the current full-edit-access model; (2)
+debounced-save conflict handling for two people editing the same document at
 once (right now the last write wins, which is fine for the demo but not for
-real concurrent editing).
+real concurrent editing); (3) a named/labeled version ("before the Q3
+rewrite") rather than only timestamp-based checkpoints.
 
 ## Repo layout
 

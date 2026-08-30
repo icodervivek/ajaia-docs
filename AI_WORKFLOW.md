@@ -71,6 +71,19 @@ in the time I'd have wanted to spend on it.
   client-side (missing a React `key`), and the dashboard/document pages
   didn't refresh when the demo "current user" was switched mid-session.
   Both were fixed and re-verified.
+- **Scope creep on the optional stretch feature.** When asked to build all
+  five stretch ideas from the assignment (real-time collab, comments,
+  version history, export, RBAC), Claude Code pushed back rather than just
+  building them — the assignment explicitly asks for *one* small
+  enhancement and warns against sacrificing core functionality, and
+  building five shallow features at the end would work against exactly the
+  scope-discipline judgment this assessment is testing for. We picked one
+  (version history) that fit the existing schema cleanly.
+- **Native `confirm()` dialogs.** The first pass of the delete and
+  version-restore flows used `window.confirm()`. Claude Code caught this
+  itself as inconsistent with the rest of the app's modal-based UI (and a
+  risk to the automated browser testing the session relied on) and replaced
+  both with an inline confirm-in-place UI, without me having to ask.
 
 ## How correctness, UX, and reliability were verified
 

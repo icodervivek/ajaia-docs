@@ -67,9 +67,9 @@ directly (see `importDoc.test.ts`) without spinning up a DOM.
   other. Solving that properly means CRDTs or OT (Tiptap ships a
   Yjs-collaboration extension, but wiring up a sync server was out of scope
   for the timebox).
-- **Version history.** The schema already timestamps every update
-  (`updatedAt`), so snapshotting on save is a natural next step, just not
-  one I had time to build and verify.
+- **Version history** was cut from the original list here and then built as
+  the one stretch enhancement (see below) — the schema's `updatedAt` was
+  exactly the signal that made it the natural next step.
 - **Comments/suggestions, PDF export, granular roles** — all reasonable
   extensions, all cut to keep the core flows deep rather than shallow.
 
@@ -79,32 +79,64 @@ directly (see `importDoc.test.ts`) without spinning up a DOM.
 User            — seeded demo identity (name, email)
 Document        — title, content (ProseMirror JSON), ownerId, timestamps
 DocumentShare   — (documentId, userId) join table = "this user has edit access"
+DocumentVersion — (documentId, title, content, createdById, createdAt) checkpoint
 ```
 
-Three tables. No polymorphic permission table, no separate "role" enum —
-because the actual permission model in this app is exactly two states, and
-a table that already encodes more flexibility than the product needs is
-speculative complexity, not a feature.
+Four tables. No polymorphic permission table, no separate "role" enum on
+sharing — because the actual permission model in this app is exactly two
+states, and a table that already encodes more flexibility than the product
+needs is speculative complexity, not a feature. `DocumentVersion` is a plain
+append-only log, deliberately not a diff/patch structure — full snapshots
+are simpler to reason about and restore from at this scale.
+
+## Stretch: version history
+
+The one optional enhancement I built (the assignment explicitly asks for
+one, not several — see AI_WORKFLOW.md for how that scope decision was made).
+
+**Throttled, not on-every-save.** Autosave fires ~700ms after the user
+stops typing; snapshotting on every one of those would flood the history
+with near-duplicate entries within seconds of each other. A version is only
+checkpointed if the last one for that document is more than 3 minutes old
+(`server/src/lib/versioning.ts`, unit tested directly since it's a pure
+function of two timestamps).
+
+**Checkpoint-before-restore.** Restoring a version first snapshots the
+document's *current* state, then overwrites it with the chosen version's
+content. This means restoring is non-destructive by construction — even a
+restore you didn't mean to do is itself just another version away from
+undoing.
+
+**Access follows edit access.** Anyone who can edit a document (owner or
+shared) can view and restore its history, consistent with the app's
+existing binary sharing model rather than introducing a third permission
+tier just for this feature.
 
 ## Deployment shape
 
 Two Vercel projects from one GitHub repo (`client`, `server` as separate
-Root Directories), each redeploying independently on push. The backend is
-the same Express app in both places — `server/src/index.ts` boots it as a
-normal long-lived server for local dev, `server/api/index.ts` exports the
-identical app for Vercel's serverless runtime. Nothing in the route/
-middleware code is Vercel-specific; the adapter is the only Vercel-aware
-file. Postgres is Neon (serverless-friendly connection pooling), the same
-database for local dev and production.
+Root Directories). The backend is the same Express app in both places —
+`server/src/index.ts` boots it as a normal long-lived server for local dev,
+`server/api/index.ts` exports the identical app for Vercel's serverless
+runtime. Nothing in the route/middleware code is Vercel-specific; the
+adapter is the only Vercel-aware file. Postgres is Neon (serverless-friendly
+connection pooling), the same database for local dev and production.
+
+Deploys are pushed manually (`vercel --prod` from each project directory)
+rather than via git-triggered auto-deploy — see the README's "Known
+limitations" for why: a reproducible bug in Vercel's own git-integration
+build pipeline for this project, confirmed independent of `vercel.json`
+configuration, that does not occur on direct CLI deploys.
 
 ## Testing
 
-12 automated tests (Vitest), two files: pure unit tests for the Markdown/
+17 automated tests (Vitest), three files: pure unit tests for the Markdown/
 plain-text → rich-text conversion (headings, bold/italic marks, list
-structure, edge cases like empty input), and integration tests for the
-Express app's auth guard and routing (401 on missing/invalid tokens, 404
-handling) that run without a database connection. What's *not* covered by
-automated tests: the Prisma-backed access-control paths (share/revoke,
-cross-user 403s) — those were verified manually and via direct API calls
-against the real database during development (see AI_WORKFLOW.md), not
-scripted into the suite, which is the honest gap here given the time box.
+structure, edge cases like empty input) and for the version-snapshot
+throttle policy, plus integration tests for the Express app's auth guard
+and routing (401 on missing/invalid tokens, 404 handling) that run without
+a database connection. What's *not* covered by automated tests: the
+Prisma-backed access-control paths (share/revoke, cross-user 403s, version
+restore) — those were verified manually and via direct API calls against
+the real database during development (see AI_WORKFLOW.md), not scripted
+into the suite, which is the honest gap here given the time box.

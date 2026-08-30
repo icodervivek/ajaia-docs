@@ -48,10 +48,12 @@ canonical, buildable copy (`git clone` + follow README setup).
 - [x] Working deployment — both links above, live-tested
 - [x] Basic validation and error handling — zod request validation,
       centralized error handler, clear UI error states
-- [x] At least one meaningful automated test — 12 tests (see README/
+- [x] At least one meaningful automated test — 17 tests (see README/
       ARCHITECTURE for what's covered)
 - [x] Architecture note — ARCHITECTURE.md
 - [x] AI workflow note — AI_WORKFLOW.md
 - [x] Walkthrough video — see link file
-- [ ] Optional stretch — not attempted; see "What I'd build next" in
-      README for what I'd prioritize with more time instead
+- [x] Optional stretch — **version history**: automatic checkpoints
+      (throttled to one per 3 min per document) with a restore flow that
+      checkpoints current content first. See README's "Stretch: version
+      history" section.
