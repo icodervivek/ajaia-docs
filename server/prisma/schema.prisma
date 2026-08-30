@@ -1,0 +1,55 @@
+// Ajaia Docs - Prisma schema
+// Database: Postgres (Neon free tier in production, any Postgres locally)
+
+generator client {
+  provider      = "prisma-client-js"
+  // "native" covers local dev; rhel-openssl-3.0.x is what Vercel's
+  // serverless (Amazon Linux) runtime needs at deploy time.
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(cuid())
+  name      String
+  email     String     @unique
+  createdAt DateTime   @default(now())
+
+  documents Document[]      @relation("OwnedDocuments")
+  shares    DocumentShare[]
+
+  @@map("users")
+}
+
+model Document {
+  id        String   @id @default(cuid())
+  title     String
+  // Tiptap/ProseMirror JSON document, stored as JSONB
+  content   Json     @default("{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\"}]}")
+  ownerId   String
+  owner     User     @relation("OwnedDocuments", fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shares DocumentShare[]
+
+  @@index([ownerId])
+  @@map("documents")
+}
+
+model DocumentShare {
+  id         String   @id @default(cuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([documentId, userId])
+  @@index([userId])
+  @@map("document_shares")
+}
